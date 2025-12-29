@@ -109,7 +109,7 @@ export const CuentaBancariaDetails: React.FC<CuentaBancariaDetailsProps> = ({
         <Typography variant="subtitle2" color="text.secondary">
           Red de Pago
         </Typography>
-        {cuentaBancaria.redDePago ? (
+        {cuentaBancaria.redDePagos ? (
           <Chip
             icon={<CheckCircleIcon />}
             label="Sí"
@@ -121,7 +121,7 @@ export const CuentaBancariaDetails: React.FC<CuentaBancariaDetailsProps> = ({
         )}
       </Box>
 
-      {cuentaBancaria.redDePago &&
+      {cuentaBancaria.redDePagos &&
         cuentaBancaria.comisionCuentaBancarias &&
         cuentaBancaria.comisionCuentaBancarias.length > 0 && (
           <>
