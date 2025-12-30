@@ -160,7 +160,6 @@ const ListadoMovimientosPage: React.FC = () => {
     );
   }
 
-  const mesNombre = MESES.find((m) => m.value === mes)?.label || "";
 
   return (
     <Box>

@@ -9,7 +9,6 @@ import {
   Typography,
   Divider,
 } from "@mui/material";
-import { NumericInput } from "../../../components/NumericInput";
 import { AsyncSelectField } from "../../../components/AsyncSelectField";
 import type { AsyncSelectOption } from "../../../components/AsyncSelectField";
 import { ComisionesManager } from "../../../components/ComisionesManager";
@@ -47,7 +46,6 @@ export const CuentaBancariaForm: React.FC<CuentaBancariaFormProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
   } = useForm<CuentaBancariaFormData>({
     defaultValues: {
       nombre: defaultValues?.nombre || "",
