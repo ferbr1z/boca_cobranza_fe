@@ -6,9 +6,11 @@ import {
   CircularProgress,
   Card,
   CardContent,
+  Chip,
   Paper,
   Stack,
 } from "@mui/material";
+import { CheckCircle as CheckCircleIcon } from "@mui/icons-material";
 import type { VentaDto } from "../../../types";
 import { formatCurrency } from "../../../utils/format";
 import { formatDateTime } from "../../../utils/dateFormat";

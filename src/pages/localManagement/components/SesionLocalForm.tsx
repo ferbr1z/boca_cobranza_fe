@@ -50,7 +50,9 @@ export const SesionLocalForm: React.FC<SesionLocalFormProps> = ({
   const [lazyGetSistemas] = useLazyGetAllSistemaExternoQuery();
   const [lazyGetPos] = useLazyGetAllPosQuery();
   const { data: activeSesion, isLoading: isLoadingActiveSesion } =
-    useGetActiveSesionByCurrentUserQuery();
+    useGetActiveSesionByCurrentUserQuery(undefined, {
+      refetchOnMountOrArgChange: true,
+    });
 
   const loadAllFuentes = useCallback(async () => {
     if (mode === "close" && activeSesion?.detalleSesionLocal) {
@@ -266,6 +268,17 @@ export const SesionLocalForm: React.FC<SesionLocalFormProps> = ({
                         allowDecimal={false}
                       />
 
+                      {mode === "close" &&
+                        detalle.montoCierreEstimado !== undefined &&
+                        detalle.montoCierreEstimado !== null && (
+                          <Typography variant="body2" color="text.secondary">
+                            Monto de cierre estimado: Gs.{" "}
+                            {detalle.montoCierreEstimado.toLocaleString(
+                              "es-PY"
+                            )}
+                          </Typography>
+                        )}
+
                       {detalle.tipo === "Operadora" && (
                         <NumericInput
                           label={
@@ -281,17 +294,6 @@ export const SesionLocalForm: React.FC<SesionLocalFormProps> = ({
                           allowDecimal={false}
                         />
                       )}
-
-                      {mode === "close" &&
-                        detalle.montoCierreEstimado !== undefined &&
-                        detalle.montoCierreEstimado !== null && (
-                          <Typography variant="body2" color="text.secondary">
-                            Monto de cierre estimado: Gs.{" "}
-                            {detalle.montoCierreEstimado.toLocaleString(
-                              "es-PY"
-                            )}
-                          </Typography>
-                        )}
 
                       {mode === "close" &&
                         detalle.tipo === "Operadora" &&

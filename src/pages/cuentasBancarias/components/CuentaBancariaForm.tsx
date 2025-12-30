@@ -31,7 +31,6 @@ interface CuentaBancariaFormProps {
   defaultValues?: Partial<CuentaBancariaFormData>;
   loading?: boolean;
   localId?: number;
-  comision?: number;
 }
 
 export const CuentaBancariaForm: React.FC<CuentaBancariaFormProps> = ({
@@ -59,8 +58,6 @@ export const CuentaBancariaForm: React.FC<CuentaBancariaFormProps> = ({
       comisionCuentaBancarias: defaultValues?.comisionCuentaBancarias || [],
     },
   });
-
-  const redDePagos = watch("redDePagos");
 
   const { loadOptions, getOptionFromValue, isLoading } = useLocalesSelect({
     initialLocalId: effectiveLocalId || defaultValues?.localId,
@@ -106,28 +103,6 @@ export const CuentaBancariaForm: React.FC<CuentaBancariaFormProps> = ({
         )}
       />
 
-      <Controller
-        name="comision"
-        control={control}
-        rules={{
-          min: { value: 0, message: "La comisión debe ser mayor o igual a 0" },
-        }}
-        render={({ field: { onChange, value, ...field } }) => (
-          <NumericInput
-            {...field}
-            value={value || 0}
-            onChange={onChange}
-            label="Comisión"
-            currency="Gs."
-            thousandSeparator="."
-            decimalSeparator=","
-            fullWidth
-            error={!!errors.comision}
-            helperText={errors.comision?.message}
-            disabled={loading}
-          />
-        )}
-      />
 
       {!effectiveLocalId && (
         <Controller
@@ -194,23 +169,20 @@ export const CuentaBancariaForm: React.FC<CuentaBancariaFormProps> = ({
           />
         )}
       />
-
-      {redDePagos && (
-        <>
-          <Divider sx={{ my: 2 }} />
-          <Controller
-            name="comisionCuentaBancarias"
-            control={control}
-            render={({ field }) => (
-              <ComisionesManager
-                comisiones={field.value}
-                onChange={field.onChange}
-                disabled={loading}
-              />
-            )}
-          />
-        </>
-      )}
+      <>
+        <Divider sx={{ my: 2 }} />
+        <Controller
+          name="comisionCuentaBancarias"
+          control={control}
+          render={({ field }) => (
+            <ComisionesManager
+              comisiones={field.value}
+              onChange={field.onChange}
+              disabled={loading}
+            />
+          )}
+        />
+      </>
 
       <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-end", mt: 2 }}>
         <Button type="submit" variant="contained" disabled={loading}>
