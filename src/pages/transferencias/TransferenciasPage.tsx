@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -37,6 +37,7 @@ import { formatCurrency } from "../../utils/format";
 import { NumericInput } from "../../components/NumericInput";
 import { AsyncSelectField } from "../../components/AsyncSelectField";
 import type { AsyncSelectOption } from "../../components/AsyncSelectField";
+import type { ComisionCuentaBancariaDto } from "../../types";
 
 interface CajaData {
   id: string;
@@ -48,7 +49,7 @@ interface CuentaBancariaData {
   id: string;
   nombre: string;
   monto: number;
-  comision: number;
+  comisionCuentaBancarias?: ComisionCuentaBancariaDto[];
 }
 
 const TransferenciasPage: React.FC = () => {
@@ -74,7 +75,26 @@ const TransferenciasPage: React.FC = () => {
   const [retirarTransferencia, { isLoading: isRetirando }] =
     useRetirarTransferenciaMutation();
 
-  const comision = cuentaBancariaData?.comision || 0;
+  const calculateComision = useMemo(() => {
+    return (
+      monto: number,
+      comisiones?: ComisionCuentaBancariaDto[]
+    ): number => {
+      if (!comisiones || comisiones.length === 0) return 0;
+
+      const match = comisiones
+        .filter((c) => monto >= c.base)
+        .sort((a, b) => b.base - a.base)[0];
+
+      return match?.comision ?? 0;
+    };
+  }, []);
+
+  const comision = useMemo(() => {
+    if (!cuentaBancariaData || !monto) return 0;
+    return calculateComision(monto, cuentaBancariaData.comisionCuentaBancarias);
+  }, [monto, cuentaBancariaData, calculateComision]);
+
   const montoFinal =
     operacion === "enviar" ? monto + comision : monto - comision;
 
@@ -334,12 +354,23 @@ const TransferenciasPage: React.FC = () => {
                         {formatCurrency(cuentaBancariaData.monto)} Gs.
                       </strong>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Comisión:{" "}
-                      <strong>
-                        {formatCurrency(cuentaBancariaData.comision)} Gs.
-                      </strong>
-                    </Typography>
+                    {cuentaBancariaData.comisionCuentaBancarias &&
+                    cuentaBancariaData.comisionCuentaBancarias.length > 0 ? (
+                      <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Comisiones:
+                        </Typography>
+                        {cuentaBancariaData.comisionCuentaBancarias.map((c, idx) => (
+                          <Typography key={idx} variant="body2" color="text.secondary">
+                            {formatCurrency(c.base)} =&gt; {formatCurrency(c.comision)} Gs.
+                          </Typography>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        Comisión: <strong>{formatCurrency(comision)} Gs.</strong>
+                      </Typography>
+                    )}
                   </Box>
                 )}
               </CardContent>
