@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   Box,
   Button,
@@ -92,6 +92,11 @@ export const VentaForm: React.FC<VentaFormProps> = ({
   const [focusIndex, setFocusIndex] = useState<number | null>(
     !ventaId ? 0 : null
   );
+  
+  // Cola de códigos escaneados pendientes de procesar
+  const scanQueueRef = useRef<string[]>([]);
+  const isProcessingRef = useRef(false);
+  const currentInputRef = useRef<string>("");
 
   const [triggerGetProductos] = useLazyGetAllProductosQuery();
   const { data: cajasData } = useGetAllCajasQuery({
@@ -237,6 +242,110 @@ export const VentaForm: React.FC<VentaFormProps> = ({
     return Math.max(0, montoTotal - montoPagado);
   }, [montoTotal, montoPagado]);
 
+  // Función para agregar un producto encontrado a la lista
+  const addScannedProduct = useCallback((product: ProductoOption) => {
+    setProductos((prevProductos) => {
+      // Buscar si hay una fila vacía (sin producto seleccionado)
+      const emptyIndex = prevProductos.findIndex((p) => p.productoId === 0);
+      
+      if (emptyIndex !== -1) {
+        // Usar la fila vacía existente
+        const newProductos = [...prevProductos];
+        newProductos[emptyIndex] = {
+          productoId: Number(product.value),
+          cantidad: 1,
+          precioUnitario: product.precio,
+          stock: product.stock,
+          nombre: product.nombre,
+          option: product,
+        };
+        return newProductos;
+      } else {
+        // Agregar nueva fila con el producto
+        return [
+          ...prevProductos,
+          {
+            productoId: Number(product.value),
+            cantidad: 1,
+            precioUnitario: product.precio,
+            stock: product.stock,
+            nombre: product.nombre,
+            option: product,
+          },
+        ];
+      }
+    });
+    
+    // Agregar una nueva fila vacía para el siguiente escaneo
+    setTimeout(() => {
+      setProductos((prev) => {
+        const hasEmpty = prev.some((p) => p.productoId === 0);
+        if (!hasEmpty) {
+          const newList = [
+            ...prev,
+            {
+              productoId: 0,
+              cantidad: 1,
+              precioUnitario: 0,
+              stock: 0,
+              nombre: "",
+              option: null,
+            },
+          ];
+          setFocusIndex(newList.length - 1);
+          return newList;
+        }
+        return prev;
+      });
+    }, 50);
+  }, []);
+
+  // Procesar la cola de escaneos
+  const processQueue = useCallback(async () => {
+    if (isProcessingRef.current || scanQueueRef.current.length === 0) return;
+    
+    isProcessingRef.current = true;
+    
+    while (scanQueueRef.current.length > 0) {
+      const searchValue = scanQueueRef.current.shift();
+      if (!searchValue) continue;
+      
+      try {
+        const response = await triggerGetProductos({
+          page: 1,
+          query: { localId, busqueda: searchValue },
+        }).unwrap();
+
+        const options = response.data
+          .map((p) => ({
+            value: Number(p.id),
+            label: p.nombre,
+            stock: p.stock,
+            precio: p.precio,
+            nombre: p.nombre,
+            codigo: p.codigo,
+          }))
+          .filter((p) => p.stock > 0);
+
+        // Buscar producto por código exacto primero
+        const foundProduct = options.find(
+          (p) => p.codigo.toLowerCase() === searchValue.toLowerCase()
+        ) || options[0]; // Si no hay match exacto, usar el primero
+
+        if (foundProduct) {
+          addScannedProduct(foundProduct);
+        } else {
+          notify.error(`Producto no encontrado: ${searchValue}`);
+        }
+      } catch (error) {
+        console.error("Error buscando producto:", error);
+        notify.error(`Error buscando producto: ${searchValue}`);
+      }
+    }
+    
+    isProcessingRef.current = false;
+  }, [triggerGetProductos, localId, addScannedProduct]);
+
   const loadProductoOptions = async (
     inputValue: string
   ): Promise<ProductoOption[]> => {
@@ -246,7 +355,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
         query: { localId, busqueda: inputValue || "" },
       }).unwrap();
 
-      return response.data
+      const options = response.data
         .map((p) => ({
           value: Number(p.id),
           label: p.nombre,
@@ -257,6 +366,8 @@ export const VentaForm: React.FC<VentaFormProps> = ({
         }))
         .filter((p) => p.stock > 0)
         .slice(0, 20);
+
+      return options;
     } catch (error) {
       console.error("Error loading products:", error);
       return [];
@@ -312,6 +423,27 @@ export const VentaForm: React.FC<VentaFormProps> = ({
       };
     }
     setProductos(newProductos);
+  };
+
+  const handleProductoKeyDown = (
+    _index: number,
+    event: React.KeyboardEvent<HTMLDivElement>
+  ) => {
+    if (event.key === "Enter" && currentInputRef.current.trim()) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Agregar a la cola y procesar
+      scanQueueRef.current.push(currentInputRef.current.trim());
+      currentInputRef.current = "";
+      
+      // Procesar la cola sin await para no bloquear
+      processQueue();
+    }
+  };
+
+  const handleInputChange = (value: string) => {
+    currentInputRef.current = value;
   };
 
   const handleCantidadChange = (index: number, cantidad: number) => {
@@ -532,6 +664,8 @@ export const VentaForm: React.FC<VentaFormProps> = ({
                   onChange={(option) =>
                     handleProductoChange(index, option as ProductoOption)
                   }
+                  onInputChange={handleInputChange}
+                  onKeyDown={(event) => handleProductoKeyDown(index, event)}
                   loadOptions={loadProductoOptions}
                   required
                   placeholder="Buscar producto..."

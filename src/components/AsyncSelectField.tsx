@@ -30,6 +30,8 @@ export interface AsyncSelectFieldProps {
   ) => React.ReactNode;
   isOptionDisabled?: (option: AsyncSelectOption) => boolean;
   autoFocus?: boolean;
+  onInputChange?: (value: string) => void;
+  onKeyDown?: (event: React.KeyboardEvent<HTMLDivElement>) => void;
 }
 
 const controlStyles: StylesConfig<AsyncSelectOption, boolean> = {
@@ -79,6 +81,8 @@ export const AsyncSelectField: React.FC<AsyncSelectFieldProps> = ({
   formatOptionLabel,
   isOptionDisabled,
   autoFocus = false,
+  onInputChange,
+  onKeyDown,
 }) => {
   const timeoutRef = React.useRef<number | null>(null);
 
@@ -120,6 +124,12 @@ export const AsyncSelectField: React.FC<AsyncSelectFieldProps> = ({
             onChange(option as AsyncSelectOption | null);
           }
         }}
+        onInputChange={(newValue, actionMeta) => {
+          if (actionMeta.action === "input-change" && onInputChange) {
+            onInputChange(newValue);
+          }
+        }}
+        onKeyDown={onKeyDown}
         isMulti={isMulti}
         placeholder={placeholder}
         isDisabled={isDisabled}
