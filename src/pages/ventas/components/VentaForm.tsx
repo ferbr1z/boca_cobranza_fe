@@ -48,6 +48,7 @@ interface ProductoOption extends AsyncSelectOption {
   precio: number;
   nombre: string;
   codigo: string;
+  isServicio: boolean;
 }
 
 interface ProductoItem {
@@ -57,6 +58,7 @@ interface ProductoItem {
   stock: number;
   nombre: string;
   option: ProductoOption | null;
+  isServicio: boolean;
 }
 
 interface PagoItem {
@@ -84,6 +86,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
             stock: 0,
             nombre: "",
             option: null,
+            isServicio: false,
           },
         ]
       : []
@@ -165,6 +168,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
                 precioUnitario: d.precioUnitario,
                 stock: found.stock,
                 nombre: found.nombre,
+                isServicio: found.isServicio,
                 option: {
                   value: Number(found.id),
                   label: found.nombre,
@@ -172,6 +176,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
                   precio: found.precio,
                   nombre: found.nombre,
                   codigo: found.codigo,
+                  isServicio: found.isServicio,
                 },
               });
             } else {
@@ -324,8 +329,9 @@ export const VentaForm: React.FC<VentaFormProps> = ({
             precio: p.precio,
             nombre: p.nombre,
             codigo: p.codigo,
+            isServicio: p.isServicio,
           }))
-          .filter((p) => p.stock > 0);
+          .filter((p) => p.stock > 0 || p.isServicio);
 
         // Buscar producto por código exacto primero
         const foundProduct = options.find(
@@ -363,8 +369,9 @@ export const VentaForm: React.FC<VentaFormProps> = ({
           precio: p.precio,
           nombre: p.nombre,
           codigo: p.codigo,
+          isServicio: p.isServicio,
         }))
-        .filter((p) => p.stock > 0)
+        .filter((p) => p.stock > 0 || p.isServicio)
         .slice(0, 20);
 
       return options;
@@ -384,6 +391,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
         stock: 0,
         nombre: "",
         option: null,
+        isServicio: false,
       },
     ];
     setProductos(newProductos);
@@ -400,7 +408,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
   ) => {
     const newProductos = [...productos];
     if (option) {
-      if (option.stock === 0) {
+      if (option.stock === 0 && !option.isServicio) {
         notify.error("Este producto no tiene stock disponible");
         return;
       }
@@ -410,6 +418,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
         precioUnitario: option.precio,
         stock: option.stock,
         nombre: option.nombre,
+        isServicio: option.isServicio,
         option: option,
       };
     } else {
@@ -419,6 +428,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
         precioUnitario: 0,
         stock: 0,
         nombre: "",
+        isServicio: false,
         option: null,
       };
     }
@@ -553,7 +563,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
       return;
     }
 
-    if (productos.some((p) => p.cantidad > p.stock)) {
+    if (productos.some((p) => p.cantidad > p.stock && !p.isServicio)) {
       notify.error("La cantidad no puede superar el stock disponible");
       return;
     }
@@ -680,14 +690,14 @@ export const VentaForm: React.FC<VentaFormProps> = ({
                     return (
                       <Box>
                         <Typography variant="body1" fontWeight="bold">
-                          {p.nombre} ({p.codigo})
+                          {p.nombre}{!p.isServicio ? ` (${p.codigo})` : ""}
                         </Typography>
                         <Typography
                           variant="caption"
-                          color={p.stock === 0 ? "error" : "text.secondary"}
+                          color={p.stock === 0 && !p.isServicio ? "error" : "text.secondary"}
                           display="block"
                         >
-                          Stock: {p.stock}
+                          {p.isServicio ? "Servicio" : `Stock: ${p.stock}`}
                         </Typography>
                         <Typography variant="body2" color="primary">
                           {formatCurrency(p.precio)} Gs.
@@ -696,7 +706,7 @@ export const VentaForm: React.FC<VentaFormProps> = ({
                     );
                   }}
                   isOptionDisabled={(option) =>
-                    (option as ProductoOption).stock === 0
+                    (option as ProductoOption).stock === 0 && !(option as ProductoOption).isServicio
                   }
                 />
               </Grid>
@@ -709,9 +719,9 @@ export const VentaForm: React.FC<VentaFormProps> = ({
                   defaultValue={0}
                   allowDecimal={false}
                   size="medium"
-                  error={producto.cantidad > producto.stock}
+                  error={producto.cantidad > producto.stock && !producto.isServicio}
                   helperText={
-                    producto.cantidad > producto.stock
+                    producto.cantidad > producto.stock && !producto.isServicio
                       ? `Stock: ${producto.stock}`
                       : " "
                   }

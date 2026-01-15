@@ -8,6 +8,7 @@ export interface ProductoDto extends BaseDto {
   precio: number;
   costo: number;
   stock: number;
+  isServicio: boolean;
 }
 
 export interface ProductoRequest {
@@ -17,10 +18,12 @@ export interface ProductoRequest {
   precio: number;
   costo: number;
   stock: number;
+  isServicio: boolean;
 }
 
 export interface ProductoQuery extends BaseQuery {
   localId?: number;
   stock?: boolean;
   busqueda?: string;
+  isServicio: boolean;
 }

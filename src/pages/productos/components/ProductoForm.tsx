@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TextField, Button, Box, CircularProgress } from "@mui/material";
+import { TextField, Button, Box, CircularProgress, FormControlLabel, Checkbox } from "@mui/material";
 import { AsyncSelectField } from "../../../components/AsyncSelectField";
 import type { AsyncSelectOption } from "../../../components/AsyncSelectField";
 import { useLocalesSelect } from "../../../hooks/useLocalesSelect";
@@ -16,12 +16,20 @@ const productoSchema = z.object({
     .max(150, "Máximo 150 caracteres"),
   codigo: z
     .string()
-    .min(1, "El código es requerido")
     .max(100, "Máximo 100 caracteres"),
   localId: z.number().min(1, "El local es requerido"),
   precio: z.number().min(0, "Debe ser un número válido"),
   costo: z.number().min(0, "Debe ser un número válido"),
   stock: z.number().int().min(0, "Debe ser un entero válido"),
+  isServicio: z.boolean(),
+}).refine((data) => {
+  if (!data.isServicio && !data.codigo) {
+    return false;
+  }
+  return true;
+}, {
+  message: "El código es requerido",
+  path: ["codigo"],
 });
 
 export type ProductoFormData = z.infer<typeof productoSchema>;
@@ -47,6 +55,8 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
+    setValue,
   } = useForm<ProductoFormData>({
     resolver: zodResolver(productoSchema),
     defaultValues: {
@@ -56,9 +66,12 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
       precio: 0,
       costo: 0,
       stock: 0,
+      isServicio: false,
       ...defaultValues,
     },
   });
+
+  const isServicio = watch("isServicio");
 
   const { defaultOptions, loadOptions, getOptionFromValue, isLoading } =
     useLocalesSelect({
@@ -70,6 +83,14 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
       reset(defaultValues);
     }
   }, [defaultValues, reset]);
+
+  useEffect(() => {
+    if (isServicio) {
+      setValue("stock", 0);
+      setValue("costo", 0);
+      setValue("codigo", "");
+    }
+  }, [isServicio, setValue]);
 
   return (
     <Box
@@ -92,21 +113,23 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
             />
           )}
         />
-        <Controller
-          name="codigo"
-          control={control}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              label="Código"
-              fullWidth
-              error={!!errors.codigo}
-              helperText={errors.codigo?.message}
-              disabled={loading}
-              required
-            />
-          )}
-        />
+        {!isServicio && (
+          <Controller
+            name="codigo"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Código"
+                fullWidth
+                error={!!errors.codigo}
+                helperText={errors.codigo?.message}
+                disabled={loading}
+                required
+              />
+            )}
+          />
+        )}
         {!effectiveLocalId && (
           <Controller
             name="localId"
@@ -137,6 +160,23 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
           />
         )}
 
+        {!isServicio && (
+          <Controller
+            name="costo"
+            control={control}
+            render={({ field }) => (
+              <NumericInput
+                label="Costo"
+                value={field.value}
+                onChange={(v) => field.onChange(Number(v))}
+                fullWidth
+                disabled={loading}
+                currency="Gs."
+                currencyPosition="suffix"
+              />
+            )}
+          />
+        )}
         <Controller
           name="precio"
           control={control}
@@ -152,33 +192,36 @@ export const ProductoForm: React.FC<ProductoFormProps> = ({
             />
           )}
         />
+        {!isServicio && (
+          <Controller
+            name="stock"
+            control={control}
+            render={({ field }) => (
+              <NumericInput
+                label="Stock"
+                value={field.value}
+                onChange={(v) => field.onChange(Number(v))}
+                fullWidth
+                disabled={loading}
+                error={!!errors.stock}
+                helperText={errors.stock?.message}
+              />
+            )}
+          />
+        )}
         <Controller
-          name="costo"
+          name="isServicio"
           control={control}
           render={({ field }) => (
-            <NumericInput
-              label="Costo"
-              value={field.value}
-              onChange={(v) => field.onChange(Number(v))}
-              fullWidth
-              disabled={loading}
-              currency="Gs."
-              currencyPosition="suffix"
-            />
-          )}
-        />
-        <Controller
-          name="stock"
-          control={control}
-          render={({ field }) => (
-            <NumericInput
-              label="Stock"
-              value={field.value}
-              onChange={(v) => field.onChange(Number(v))}
-              fullWidth
-              disabled={loading}
-              error={!!errors.stock}
-              helperText={errors.stock?.message}
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  disabled={loading}
+                />
+              }
+              label="Es un servicio"
             />
           )}
         />
